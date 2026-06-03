@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>自学マップ Interactive MVP</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#1d4ed8; --light:#eff6ff; --green:#047857; --orange:#b45309; --red:#b91c1c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{background:#fff;border-right:1px solid var(--line);padding:24px;position:sticky;top:0;height:100vh}
+.brand{font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
+.sub{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:28px}
+.nav button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:12px 14px;border-radius:12px;font-size:15px;cursor:pointer;color:#374151;margin-bottom:6px}
+.nav button.active{background:var(--light);color:var(--blue);font-weight:700}
+.main{padding:28px;max-width:1280px}
+.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}
+h1{margin:0;font-size:32px;letter-spacing:-.04em}
+.lead{color:var(--muted);margin-top:8px;line-height:1.7}
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:1.05fr .95fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.card h2{font-size:18px;margin:0 0 14px;letter-spacing:-.02em}
+.card h3{font-size:15px;margin:18px 0 8px}
+label{font-size:13px;font-weight:700;display:block;margin:14px 0 6px;color:#374151}
+input,textarea,select{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px 13px;font-size:15px;background:#fff;outline:none}
+textarea{min-height:148px;resize:vertical;line-height:1.7}
+input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.12)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer;background:var(--blue);color:white}
+.btn.secondary{background:#f3f4f6;color:#111827;border:1px solid #d1d5db}
+.btn.ghost{background:transparent;color:var(--blue)}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:6px 10px;font-size:13px;margin:4px}
+.pill.blue{background:var(--light);border-color:#bfdbfe;color:#1e40af}
+.pill.green{background:#ecfdf5;border-color:#bbf7d0;color:#047857}
+.pill.orange{background:#fff7ed;border-color:#fed7aa;color:#b45309}
+.muted{color:var(--muted);font-size:13px;line-height:1.6}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi .box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.num{font-size:26px;font-weight:800}
+.logitem{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;background:#fff}
+.logitem .title{font-weight:800;margin-bottom:4px}
+.mapwrap{height:420px;border:1px solid var(--line);border-radius:16px;background:radial-gradient(circle at 20% 20%,#eff6ff 0,#fff 35%,#fff 100%);position:relative;overflow:hidden}
+.node{position:absolute;border-radius:999px;padding:12px 16px;font-weight:800;border:2px solid #111827;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.08);white-space:nowrap;transform:translate(-50%,-50%)}
+.node.core{background:#111827;color:#fff;border-color:#111827;font-size:16px}
+.node.big{font-size:16px;padding:14px 20px}
+svg.lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.line{stroke:#94a3b8;stroke-width:2;stroke-dasharray:0}
+.line.strong{stroke:var(--blue);stroke-width:4}
+.qcard{border-left:4px solid var(--blue);padding:12px 14px;background:#f8fafc;border-radius:12px;margin-bottom:10px}
+.progress{height:9px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+.bar{height:100%;background:var(--blue);border-radius:999px}
+.hidden{display:none}
+.report{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:16px;line-height:1.75}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.tab{border:1px solid #d1d5db;background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:700;color:#374151}
+.tab.active{background:#111827;color:#fff;border-color:#111827}
+.toast{position:fixed;right:24px;bottom:24px;background:#111827;color:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;transform:translateY(10px);transition:.2s}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.main{padding:18px}.g2,.g3{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">自学マップ MVP</div>
+    <div class="sub">授業ログのコメントから、関心・問い・テーマのつながりを自動で可視化する触れるプロトタイプ。</div>
+    <div class="nav">
+      <button class="active" onclick="showView('input',this)">01 ログを書く</button>
+      <button onclick="showView('analysis',this)">02 AI抽出を見る</button>
+      <button onclick="showView('map',this)">03 自学マップ</button>
+      <button onclick="showView('portfolio',this)">04 問い・探究候補</button>
+      <button onclick="showView('teacher',this)">05 講師ビュー</button>
+      <button onclick="showView('parent',this)">06 保護者レポート</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div>
+        <h1 id="pageTitle">授業ログを書く</h1>
+        <div class="lead" id="pageLead">いつもの「読んだ文章へのコメント」を入れるだけで、裏側で自学マップ化されます。</div>
+      </div>
+      <button class="btn secondary" onclick="loadSample()">サンプルを流し込む</button>
+    </div>
+
+    <section id="input" class="view">
+      <div class="grid g2">
+        <div class="card">
+          <h2>今日の授業ログ</h2>
+          <label>生徒名</label>
+          <input id="student" value="小泉 太郎">
+          <label>今日読んだ文章タイトル</label>
+          <input id="article" value="AIは教育を変えるか">
+          <label>文章へのコメント</label>
+          <textarea id="comment">AIを使えば教育機会が平等になるという主張は面白かった。しかし、実際にはAIを活用できる家庭とそうでない家庭で差が広がる可能性もあると思った。技術そのものより、それを使える環境の差が重要なのではないか。</textarea>
+          <div class="btnrow">
+            <button class="btn" onclick="analyzeLog()">このログを自学マップ化する</button>
+            <button class="btn secondary" onclick="clearForm()">空にする</button>
+          </div>
+          <p class="muted">実装上は、既存の授業ログ入力欄の裏側でこの処理が走る想定。生徒に重い追加入力はさせない。</p>
+        </div>
+        <div class="card">
+          <h2>既存ログの例</h2>
+          <div id="recentLogs"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="analysis" class="view hidden">
+      <div class="kpi">
+        <div class="box"><div class="num" id="kpiLogs">6</div><div class="muted">累計ログ</div></div>
+        <div class="box"><div class="num" id="kpiThemes">9</div><div class="muted">検出テーマ</div></div>
+        <div class="box"><div class="num" id="kpiQuestions">8</div><div class="muted">問い候補</div></div>
+        <div class="box"><div class="num" id="kpiDepth">72</div><div class="muted">深まりスコア</div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <h2>今回のコメントから抽出</h2>
+          <h3>テーマタグ</h3>
+          <div id="tags"></div>
+          <h3>反応タイプ</h3>
+          <div id="reactions"></div>
+          <h3>コメントの読み取り</h3>
+          <div class="report" id="interpretation"></div>
+        </div>
+        <div class="card">
+          <h2>問い候補</h2>
+          <div id="questions"></div>
+          <h3>次に読むとよさそうな方向</h3>
+          <div id="nextReads"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="map" class="view hidden">
+      <div class="card">
+        <h2>自学マップ：関心のつながり</h2>
+        <p class="muted">コメントが蓄積されるほど、どのテーマに反応しやすいか、どんな問いが育っているかが見える。</p>
+        <div class="mapwrap" id="mapWrap">
+          <svg class="lines" id="mapLines"></svg>
+          <div class="node core" style="left:50%;top:50%">私の関心</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="portfolio" class="view hidden">
+      <div class="grid g2">
+        <div class="card">
+          <h2>問いポートフォリオ</h2>
+          <div id="questionPortfolio"></div>
+        </div>
+        <div class="card">
+          <h2>探究テーマ候補</h2>
+          <div id="projectIdeas"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="teacher" class="view hidden">
+      <div class="card">
+        <h2>講師ダッシュボード</h2>
+        <p class="muted">講師は全ログを読むのではなく、介入すべき生徒・論点を確認する。</p>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="text-align:left;border-bottom:1px solid #ddd;padding:10px">生徒</th><th style="text-align:left;border-bottom:1px solid #ddd;padding:10px">状態</th><th style="text-align:left;border-bottom:1px solid #ddd;padding:10px">推奨介入</th><th style="text-align:left;border-bottom:1px solid #ddd;padding:10px">優先度</th></tr></thead>
+          <tbody id="teacherRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="parent" class="view hidden">
+      <div class="card">
+        <h2>保護者向け月次レポート</h2>
+        <div class="report" id="parentReport"></div>
+        <div class="btnrow">
+          <button class="btn" onclick="copyReport()">レポート文をコピー</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast">更新しました</div>
+
+<script>
+const baseLogs = [
+  {title:"地方創生と若者流出", comment:"若者が地方を離れる理由は仕事だけではなく、将来の選択肢の少なさにもあるのではないかと感じた。地方に残ることが不利にならない仕組みが必要だと思った。"},
+  {title:"大学教育の意義", comment:"大学は知識を学ぶ場所というより、考え方を学ぶ場所なのではないかと思った。答えを覚えるより、自分の問いを深めることの方が重要だと感じた。"},
+  {title:"ケアの社会的価値", comment:"介護や子育てのようなケアは社会に不可欠なのに、経済的には低く評価されやすい点に違和感を持った。価値の測り方自体を考え直す必要があるのではないか。"},
+  {title:"科学技術と倫理", comment:"科学技術は便利さをもたらす一方で、使い方によっては人間らしさや公平性を損なう可能性がある。技術を進めるだけでなく、社会側のルールも必要だと思った。"},
+  {title:"言葉と思考", comment:"言葉があるから考えられるという主張が印象に残った。自分の気持ちをうまく言葉にできないと、そもそも自分が何を考えているのかも分からないのかもしれない。"}
+];
+
+let logs = [...baseLogs];
+let current = {};
+const themeDict = {
+  "教育":["教育","学校","学び","大学","授業","進路","高校"],
+  "AI":["AI","人工知能","生成AI","技術","テクノロジー"],
+  "格差":["格差","平等","不平等","機会","公平"],
+  "地方":["地方","地域","都市","若者流出"],
+  "進路":["進路","将来","選択肢","大学"],
+  "社会制度":["制度","仕組み","社会","ルール","政策"],
+  "科学技術":["科学","技術","倫理","便利"],
+  "ケア":["介護","子育て","ケア"],
+  "言語":["言葉","言語","文章","気持ち"]
+};
+const nextReadMap = {
+  "教育":["教育政策の入門記事","学校外教育の事例","大学教育の役割に関する評論"],
+  "AI":["EdTechの事例","生成AIと学習の論点","AI倫理の入門"],
+  "格差":["教育格差の調査記事","地域格差の統計","機会平等に関する評論"],
+  "地方":["地方創生の事例","地域教育の取り組み","若者流出に関する記事"],
+  "ケア":["ケア労働の社会的価値","福祉政策の入門","家族と社会の評論"],
+  "言語":["言語と思考の関係","日本語論の入門","表現と言葉に関する評論"],
+  "科学技術":["科学技術倫理","技術と社会制度","イノベーションと格差"]
+};
+
+function detectThemes(text){
+  const themes=[];
+  for(const [theme, words] of Object.entries(themeDict)){
+    if(words.some(w=>text.includes(w))) themes.push(theme);
+  }
+  if(themes.length===0) themes.push("社会","自己理解");
+  return [...new Set(themes)];
+}
+function detectReaction(text){
+  const arr=[];
+  if(text.includes("違和感")||text.includes("しかし")||text.includes("本当に")) arr.push("違和感");
+  if(text.includes("面白")||text.includes("印象")) arr.push("関心");
+  if(text.includes("必要")||text.includes("重要")) arr.push("問題意識");
+  if(text.includes("自分")||text.includes("感じた")) arr.push("自分ごと化");
+  return arr.length?arr:["感想"];
+}
+function makeQuestions(themes, text){
+  const qs=[];
+  if(themes.includes("AI")&&themes.includes("教育")) qs.push("AIは教育格差を縮小するのか、それとも拡大するのか？");
+  if(themes.includes("地方")&&themes.includes("進路")) qs.push("地方の高校生の進路選択肢はなぜ制限されやすいのか？");
+  if(themes.includes("大学")||themes.includes("教育")) qs.push("大学や学校は、知識ではなく何を育てるべきなのか？");
+  if(themes.includes("ケア")) qs.push("ケアの価値は、社会でどのように評価されるべきか？");
+  if(themes.includes("科学技術")) qs.push("技術の進歩は、人間らしさや公平性とどう両立できるのか？");
+  if(themes.includes("言語")) qs.push("言葉にする力は、自分の考えをどう変えるのか？");
+  if(qs.length===0) qs.push("この文章で扱われている問題は、自分の経験や社会とどうつながるのか？");
+  return [...new Set(qs)];
+}
+function projectIdeas(themes){
+  const ideas=[];
+  if(themes.includes("AI")&&themes.includes("教育")) ideas.push({t:"生成AIと教育格差の関係",d:"AI利用環境の差が学習機会に与える影響を調べる。"});
+  if(themes.includes("地方")) ideas.push({t:"地方高校生の進路選択に影響する要因",d:"情報・ロールモデル・地域環境の違いを比較する。"});
+  if(themes.includes("教育")) ideas.push({t:"大学教育は何を育てるべきか",d:"知識習得と問いを立てる力の違いを考察する。"});
+  if(themes.includes("ケア")) ideas.push({t:"ケア労働の価値はなぜ見えにくいのか",d:"家庭・市場・制度の観点から考える。"});
+  if(themes.includes("科学技術")) ideas.push({t:"科学技術の進歩と倫理の関係",d:"便利さと公平性のトレードオフを事例で分析する。"});
+  return ideas.slice(0,4);
+}
+function analyzeLog(){
+  const title=document.getElementById("article").value.trim();
+  const comment=document.getElementById("comment").value.trim();
+  if(!comment){showToast("コメントを入力してください"); return;}
+  const themes=detectThemes(title+comment);
+  const reactions=detectReaction(comment);
+  const questions=makeQuestions(themes, comment);
+  current={title,comment,themes,reactions,questions};
+  logs.unshift({title,comment});
+  if(logs.length>8) logs=logs.slice(0,8);
+  renderAll();
+  showView("analysis", document.querySelectorAll(".nav button")[1]);
+  showToast("自学マップ化しました");
+}
+function renderAll(){
+  renderRecentLogs();
+  renderAnalysis();
+  renderMap();
+  renderPortfolio();
+  renderTeacher();
+  renderParent();
+}
+function renderRecentLogs(){
+  document.getElementById("recentLogs").innerHTML = logs.slice(0,5).map(l=>`
+    <div class="logitem"><div class="title">${l.title}</div><div class="muted">${l.comment}</div></div>
+  `).join("");
+}
+function renderAnalysis(){
+  const text=(current.comment||logs[0].comment);
+  const title=(current.title||logs[0].title);
+  const themes=current.themes||detectThemes(title+text);
+  const reactions=current.reactions||detectReaction(text);
+  const questions=current.questions||makeQuestions(themes,text);
+  document.getElementById("tags").innerHTML=themes.map(t=>`<span class="pill blue">${t}</span>`).join("");
+  document.getElementById("reactions").innerHTML=reactions.map(t=>`<span class="pill green">${t}</span>`).join("");
+  document.getElementById("questions").innerHTML=questions.map(q=>`<div class="qcard">${q}</div>`).join("");
+  document.getElementById("interpretation").innerHTML=`このコメントは、単なる文章理解ではなく、<b>${themes.slice(0,3).join("・")}</b>への関心を示しています。特に「${reactions[0]}」として反応しており、今後の探究テーマに育つ可能性があります。`;
+  const reads=[...new Set(themes.flatMap(t=>nextReadMap[t]||[]))].slice(0,5);
+  document.getElementById("nextReads").innerHTML=reads.map(r=>`<span class="pill orange">${r}</span>`).join("") || `<span class="pill orange">関連評論をもう1本読む</span>`;
+  const allThemes=getAllThemes();
+  document.getElementById("kpiLogs").innerText=logs.length;
+  document.getElementById("kpiThemes").innerText=allThemes.length;
+  document.getElementById("kpiQuestions").innerText=Math.min(20, allThemes.length + logs.length);
+  document.getElementById("kpiDepth").innerText=Math.min(95, 55 + logs.length*4);
+}
+function getAllThemes(){
+  const counts={};
+  logs.forEach(l=>detectThemes(l.title+l.comment).forEach(t=>counts[t]=(counts[t]||0)+1));
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+}
+function renderMap(){
+  const wrap=document.getElementById("mapWrap");
+  wrap.querySelectorAll(".node:not(.core)").forEach(n=>n.remove());
+  const svg=document.getElementById("mapLines");
+  svg.innerHTML="";
+  const themes=getAllThemes().slice(0,9);
+  const positions=[
+    [50,18],[78,28],[82,55],[67,78],[42,80],[20,66],[18,38],[34,25],[60,39]
+  ];
+  themes.forEach(([theme,count],i)=>{
+    const [x,y]=positions[i];
+    const div=document.createElement("div");
+    div.className="node "+(count>=2?"big":"");
+    div.style.left=x+"%"; div.style.top=y+"%";
+    div.innerText=theme+" "+count;
+    wrap.appendChild(div);
+    const strong=count>=2?"strong":"";
+    svg.innerHTML += `<line class="line ${strong}" x1="50%" y1="50%" x2="${x}%" y2="${y}%" />`;
+  });
+}
+function renderPortfolio(){
+  const themes=getAllThemes().map(x=>x[0]);
+  const qs=[...new Set(logs.flatMap(l=>makeQuestions(detectThemes(l.title+l.comment),l.comment)))].slice(0,7);
+  document.getElementById("questionPortfolio").innerHTML=qs.map((q,i)=>`
+    <div class="qcard"><b>問い ${i+1}</b><br>${q}<div class="muted">関連ログ ${Math.max(1, Math.floor(Math.random()*4))}件</div></div>
+  `).join("");
+  const ideas=projectIdeas(themes);
+  document.getElementById("projectIdeas").innerHTML=ideas.map((p,i)=>`
+    <div class="logitem"><div class="title">${p.t}</div><div class="muted">${p.d}</div><div style="margin-top:8px"><div class="progress"><div class="bar" style="width:${45+i*12}%"></div></div></div></div>
+  `).join("") || `<div class="muted">ログが増えると候補が出ます。</div>`;
+}
+function renderTeacher(){
+  const rows=[
+    ["小泉 太郎","教育×AIの問いが育っている","関連文章を追加し、探究化を促す","高"],
+    ["山田 花子","コメントが感想で止まりがち","『なぜ？』に変換する声かけ","中"],
+    ["佐藤 健","地方×進路に継続反応","インタビュー活動を提案","高"],
+    ["中村 葵","提出が2週停止","短いコメントから再開","高"]
+  ];
+  document.getElementById("teacherRows").innerHTML=rows.map(r=>`
+    <tr><td style="padding:10px;border-bottom:1px solid #eee">${r[0]}</td><td style="padding:10px;border-bottom:1px solid #eee">${r[1]}</td><td style="padding:10px;border-bottom:1px solid #eee">${r[2]}</td><td style="padding:10px;border-bottom:1px solid #eee"><span class="pill ${r[3]==='高'?'orange':'blue'}">${r[3]}</span></td></tr>
+  `).join("");
+}
+function renderParent(){
+  const themes=getAllThemes().slice(0,4).map(x=>x[0]);
+  const qs=[...new Set(logs.flatMap(l=>makeQuestions(detectThemes(l.title+l.comment),l.comment)))].slice(0,3);
+  document.getElementById("parentReport").innerHTML=`
+    <b>今月の関心領域：</b>${themes.join("・")}<br><br>
+    <b>見えてきた特徴：</b>文章を読んだあと、単なる内容理解ではなく、社会の仕組みや機会の差に対して疑問を持つ傾向があります。特に「${themes[0]||"教育"}」を起点に他のテーマへ接続する力が見えています。<br><br>
+    <b>育っている問い：</b><br>
+    ${qs.map(q=>"・"+q).join("<br>")}<br><br>
+    <b>次のおすすめ：</b>同じテーマの別立場の文章を読み、賛成・反対の両方から自分の考えを整理すると、探究テーマとして深まりやすいです。
+  `;
+}
+function showView(id,btn){
+  document.querySelectorAll(".view").forEach(v=>v.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  const titles={
+    input:["授業ログを書く","いつもの「読んだ文章へのコメント」を入れるだけで、裏側で自学マップ化されます。"],
+    analysis:["AI抽出を見る","コメントからテーマ・反応タイプ・問い候補・次に読むものを抽出します。"],
+    map:["自学マップ","蓄積されたコメントから、生徒ごとの関心のつながりを可視化します。"],
+    portfolio:["問い・探究候補","ログの蓄積から、問いポートフォリオと探究テーマ候補を生成します。"],
+    teacher:["講師ビュー","介入すべき生徒と、次にかけるべき声を見える化します。"],
+    parent:["保護者レポート","成績以外の成長を、月次レポートとして説明できます。"]
+  };
+  document.getElementById("pageTitle").innerText=titles[id][0];
+  document.getElementById("pageLead").innerText=titles[id][1];
+}
+function loadSample(){
+  document.getElementById("student").value="佐藤 葵";
+  document.getElementById("article").value="地方の高校生と進路選択";
+  document.getElementById("comment").value="地方の高校生は能力が低いわけではなく、周りに選択肢を知っている人が少ないことが問題なのではないかと思った。進路は本人の努力だけで決まるのではなく、情報や環境に大きく左右されるという点に違和感を持った。";
+  showToast("サンプルを入力しました");
+}
+function clearForm(){
+  document.getElementById("article").value="";
+  document.getElementById("comment").value="";
+}
+function copyReport(){
+  const text=document.getElementById("parentReport").innerText;
+  navigator.clipboard.writeText(text);
+  showToast("コピーしました");
+}
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.innerText=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),1600);
+}
+renderAll();
+</script>
+</body>
+</html>
+
+
